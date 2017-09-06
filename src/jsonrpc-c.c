@@ -31,6 +31,20 @@ static void *get_in_addr(struct sockaddr *sa) {
 	return &(((struct sockaddr_in6*) sa)->sin6_addr);
 }
 
+#ifdef CHECK_LOCALHOST
+static int is_localhost(struct sockaddr *sa) {
+	if (sa->sa_family == AF_INET) {
+		printf("sin_addr.saddr = %08x\n", (((struct sockaddr_in*) sa)->sin_addr).s_addr);
+		return (((struct sockaddr_in*) sa)->sin_addr).s_addr - 0x0100007f;
+	}
+	const unsigned char localhost_bytes[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 };
+	const unsigned char mapped_ipv4_localhost[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0x7f, 0, 0, 1 };
+	int ret1 = memcmp((((struct sockaddr_in6*) sa)->sin6_addr).s6_addr, localhost_bytes, 16);
+	int ret2 = memcmp((((struct sockaddr_in6*) sa)->sin6_addr).s6_addr, mapped_ipv4_localhost, 16);
+	return ret1 && ret2;
+}
+#endif  //CHECK_LOCALHOST
+
 static int send_response(struct jrpc_connection * conn, char *response) {
 	int fd = conn->fd;
 	if (conn->debug_level > 1)
@@ -218,6 +232,12 @@ static void accept_cb(struct ev_loop *loop, ev_io *w, int revents) {
 	if (connection_watcher->fd == -1) {
 		perror("accept");
 		free(connection_watcher);
+#ifdef CHECK_LOCALHOST
+	} else if (is_localhost((struct sockaddr *) &their_addr)) {
+		fprintf(stderr, "not localhost\n");
+		shutdown(connection_watcher->fd, SHUT_RDWR);
+		free(connection_watcher);
+#endif  //CHECK_LOCALHOST
 	} else {
 		if (((struct jrpc_server *) w->data)->debug_level) {
 			inet_ntop(their_addr.ss_family,
@@ -244,7 +264,7 @@ int jrpc_server_init(struct jrpc_server *server, int port_number) {
     return jrpc_server_init_with_ev_loop(server, port_number, loop);
 }
 
-int jrpc_server_init_with_ev_loop(struct jrpc_server *server, 
+int jrpc_server_init_with_ev_loop(struct jrpc_server *server,
         int port_number, struct ev_loop *loop) {
 	memset(server, 0, sizeof(struct jrpc_server));
 	server->loop = loop;
