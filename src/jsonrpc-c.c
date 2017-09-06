@@ -34,7 +34,6 @@ static void *get_in_addr(struct sockaddr *sa) {
 #ifdef CHECK_LOCALHOST
 static int is_localhost(struct sockaddr *sa) {
 	if (sa->sa_family == AF_INET) {
-		printf("sin_addr.saddr = %08x\n", (((struct sockaddr_in*) sa)->sin_addr).s_addr);
 		return (((struct sockaddr_in*) sa)->sin_addr).s_addr - 0x0100007f;
 	}
 	const unsigned char localhost_bytes[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 };
