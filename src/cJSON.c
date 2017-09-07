@@ -30,6 +30,7 @@
 #include <float.h>
 #include <limits.h>
 #include <ctype.h>
+#include <inttypes.h>
 #include "cJSON.h"
 
 static int cJSON_strcasecmp(const char *s1,const char *s2)
@@ -92,6 +93,7 @@ void cJSON_Delete(cJSON *c)
 static char **parse_number(cJSON *item, char **num)
 {
 	double n=0,sign=1,scale=0;int subscale=0,signsubscale=1;
+	uint64_t n64=0;
 
 	if (**num=='-') {	/* Has sign? */
 		sign = -1;
@@ -102,6 +104,7 @@ static char **parse_number(cJSON *item, char **num)
 	if (**num>='1' && **num<='9') {	/* Number? */
 		do {
 			n=(n*10.0)+(**num -'0');
+			n64=(n64*10ULL)+(**num -'0');
 			(*num)++;
 		} while (**num>='0' && **num<='9');
 	}
@@ -109,6 +112,7 @@ static char **parse_number(cJSON *item, char **num)
 		(*num)++;
 		do {
 			n=(n*10.0)+(**num -'0');
+			n64=(n64*10ULL)+(**num -'0');
 			scale--;
 			(*num)++;
 		} while (**num>='0' && **num<='9');
@@ -130,6 +134,7 @@ static char **parse_number(cJSON *item, char **num)
 
 	item->valuedouble=n;
 	item->valueint=(int)n;
+	item->valueu64=n64;
 	item->type=cJSON_Number;
 	return num;
 }
@@ -143,6 +148,11 @@ static char *print_number(cJSON *item)
 	{
 		str=(char*)cJSON_malloc(21);	/* 2^64+1 can be represented in 21 chars. */
 		if (str) sprintf(str,"%d",item->valueint);
+	}
+	else if ((0<=d) && (d<=UINT64_MAX))
+	{
+		str=(char*)cJSON_malloc(21);	/* 2^64+1 can be represented in 21 chars. */
+		if (str) sprintf(str,"%" PRIu64,item->valueu64);
 	}
 	else
 	{
@@ -598,7 +608,8 @@ cJSON *cJSON_CreateNull()						{cJSON *item=cJSON_New_Item();if(item)item->type=
 cJSON *cJSON_CreateTrue()						{cJSON *item=cJSON_New_Item();if(item)item->type=cJSON_True;return item;}
 cJSON *cJSON_CreateFalse()						{cJSON *item=cJSON_New_Item();if(item)item->type=cJSON_False;return item;}
 cJSON *cJSON_CreateBool(int b)					{cJSON *item=cJSON_New_Item();if(item)item->type=b?cJSON_True:cJSON_False;return item;}
-cJSON *cJSON_CreateNumber(double num)			{cJSON *item=cJSON_New_Item();if(item){item->type=cJSON_Number;item->valuedouble=num;item->valueint=(int)num;}return item;}
+cJSON *cJSON_CreateNumber(double num)			{cJSON *item=cJSON_New_Item();if(item){item->type=cJSON_Number;item->valuedouble=num;item->valueint=(int)num;item->valueu64=(uint64_t)num;}return item;}
+cJSON *cJSON_CreateNumber64(uint64_t num)		{cJSON *item=cJSON_New_Item();if(item){item->type=cJSON_Number;item->valuedouble=num;item->valueint=(int)num;item->valueu64=num;}return item;}
 cJSON *cJSON_CreateString(const char *string)	{cJSON *item=cJSON_New_Item();if(item){item->type=cJSON_String;item->valuestring=cJSON_strdup(string);}return item;}
 cJSON *cJSON_CreateArray()						{cJSON *item=cJSON_New_Item();if(item)item->type=cJSON_Array;return item;}
 cJSON *cJSON_CreateObject()						{cJSON *item=cJSON_New_Item();if(item)item->type=cJSON_Object;return item;}

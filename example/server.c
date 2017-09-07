@@ -19,12 +19,40 @@
 #include <signal.h>
 #include "jsonrpc-c.h"
 
+#include <inttypes.h>
+
 #define PORT 1234  // the port users will be connecting to
 
 struct jrpc_server my_server;
 
 cJSON * say_hello(jrpc_context * ctx, cJSON * params, cJSON *id) {
-	return cJSON_CreateString("Hello!");
+	cJSON *result;
+	if (params) {
+		cJSON *json = cJSON_GetArrayItem(params, 0);
+		if (json && (json->type == cJSON_Number)) {
+			if (cJSON_Maybe64(json)) {
+				printf("uint64_t=%" PRIu64 "\n", json->valueu64);
+				result = cJSON_CreateNumber64(json->valueu64);
+			} else {
+				printf("double=%lf\n", json->valuedouble);
+				result = cJSON_CreateNumber(json->valuedouble);
+			}
+		}
+        json = cJSON_GetArrayItem(params, 1);
+		if (json && (json->type == cJSON_Number)) {
+			if (cJSON_Maybe64(json)) {
+				printf("uint64_t=%" PRIu64 "\n", json->valueu64);
+				result = cJSON_CreateNumber64(json->valueu64);
+			} else {
+				printf("double=%lf\n", json->valuedouble);
+				result = cJSON_CreateNumber(json->valuedouble);
+			}
+		}
+	} else {
+		result = cJSON_CreateString("Hello!");
+	}
+
+	return result;
 }
 
 cJSON * exit_server(jrpc_context * ctx, cJSON * params, cJSON *id) {
