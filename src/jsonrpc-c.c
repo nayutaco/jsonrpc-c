@@ -169,7 +169,7 @@ static void connection_cb(struct ev_loop *loop, ev_io *w, int revents) {
 	int max_read_size = conn->buffer_size - conn->pos - 1;
 	if ((bytes_read = read(fd, conn->buffer + conn->pos, max_read_size))
 			== -1) {
-		perror("read");
+		//perror("read");
 		return close_connection(loop, w);
 	}
 	if (!bytes_read) {
